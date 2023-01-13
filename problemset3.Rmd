@@ -1,0 +1,409 @@
+---
+title: "Joe Biden With a Huge Advantage Against Donald Trump in 2020 United States Presidential Election"
+author: "Jixuan Huang & Pinyang Zhou & Maoyuan Gao & Zishu Zhu"
+date: "November 2nd, 2020"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(haven)
+library(tidyverse)
+library(formattable)
+library(kableExtra)
+```
+
+
+```{r, include=FALSE}
+setwd("/Users/zishuzhu/Desktop/problemset3")
+sur_raw <- read_dta("ns20200625/ns20200625.dta")
+sur_raw <- labelled::to_factor(sur_raw)
+
+
+#select variables from sample data
+new_sur <- 
+  sur_raw %>% 
+  select(vote_2020,
+         vote_intention,
+         registration,
+         age,
+         gender,
+         state,
+         household_income,
+         race_ethnicity,
+         employment
+         )
+
+
+new_sur$age<-as.numeric(new_sur$age)
+
+#filter the valid voters
+survey_dat<-new_sur %>% 
+  filter(registration=="Registered"&
+           vote_intention=="Yes, I will vote",
+           (vote_2020=="Joe Biden"|vote_2020=="Donald Trump")
+  )
+
+
+#remove NA in sample data
+survey_dat<-na.omit(survey_dat)
+
+
+cens_raw <- read_dta("usa_00005.dta")
+cens_raw <- labelled::to_factor(cens_raw)
+
+
+#select variables in census data
+new_cens <- 
+  cens_raw %>% 
+  select(perwt,
+         citizen,
+         age,
+         sex, 
+         stateicp,
+         hhincome,
+         race,
+         empstat
+  )
+
+new_cens$age<-as.numeric(new_cens$age)
+
+
+#filter out the valid voters
+census_dat<-new_cens %>% filter(age>=18 
+                                & (citizen=="naturalized citizen"|citizen=="born abroad of american parents"))
+
+census_dat$hhincome<-ifelse(census_dat$hhincome==9999999,
+                            NaN,census_dat$hhincome)
+
+#remove NA in census data
+census_dat<-na.omit(census_dat)
+
+
+#Employment
+#keep the same variable names in both data set
+choic_1 <- c("Full-time employed", "Part-time employed", "Self-employed")
+choic_2 <- c("Unemployed or temporarily on layoff", "Other")
+choic_3 <- c("Permanently disabled", "Student", "Retired", "Homemaker")
+
+survey_dat <- survey_dat %>% mutate(employment_stat = case_when(
+  employment %in% choic_1~"Employed",
+  employment %in% choic_2~"Unemployed",
+  employment %in% choic_3~"Not in labor force"
+))
+
+census_dat <- census_dat %>%(employment_stat = case_when(
+  empstat=="n/a"~"Unemployed",
+  empstat=="unemployed"~"Unemployed",
+  empstat=="employed"~"Employed",
+  empstat=="not in labor force"~"Not in labor force"
+))
+
+census_dat$empstat <- NULL
+survey_dat$employment <- NULL
+
+
+#AGE
+survey_dat<-survey_dat %>% 
+  mutate(age_in_group = case_when(age <=18 ~ '18 and under', age >18  & age <= 33 ~ '18 to 33',
+                                  age >33  & age <= 48 ~ '33 to 48', age >48  & age <= 63 ~ '48 to 63', age >63  & age <= 78 ~ '63 to 78',
+                                  age >78 ~ 'above 78'
+  )) 
+census_dat<-census_dat %>% 
+  mutate(age_in_group = case_when(age <=18 ~ '18 and under',
+                                  age >18  & age <= 33 ~ '18 to 33', age >33  & age <= 48 ~ '33 to 48',
+                                  age >48  & age <= 63 ~ '48 to 63', age >63  & age <= 78 ~ '63 to 78',
+                                  age >78 ~ 'above 78' 
+  )) 
+
+
+survey_dat$age <- NULL
+census_dat$age <- NULL
+
+
+#GENDER
+
+
+census_dat$sex<-ifelse(census_dat$sex=="female","Female","Male")
+census_dat<-rename(census_dat,gender=sex)
+
+
+#STATE
+census_dat<-census_dat %>% 
+  mutate(state = case_when(stateicp=="alabama"~"AL",
+                           stateicp=="alaska"~"AK",
+                           stateicp=="arizona"~"AZ",
+                           stateicp=="arkansas"~"AR",
+                           stateicp=="california"~"CA",
+                           stateicp=="colorado"~"CO",
+                           stateicp=="connecticut"~"CT",
+                           stateicp=="delaware"~"DE",
+                           stateicp=="florida"~"FL",
+                           stateicp=="georgia"~"GA",
+                           stateicp=="hawaii"~"HI",
+                           stateicp=="idaho"~"ID",
+                           stateicp=="illinois"~"IL",
+                           stateicp=="indiana"~"IN",
+                           stateicp=="iowa"~"IA",
+                           stateicp=="kansas"~"KS",
+                           stateicp=="kentucky"~"KY",
+                           stateicp=="louisiana"~"LA",
+                           stateicp=="maine"~"ME",
+                           stateicp=="maryland"~"MD",
+                           stateicp=="massachusetts"~"MA",
+                           stateicp=="michigan"~"MI",
+                           stateicp=="minnesota"~"MN",
+                           stateicp=="mississippi"~"MS",
+                           stateicp=="missouri"~"MO",
+                           stateicp=="montana"~"MT",
+                           stateicp=="nebraska"~"NE",
+                           stateicp=="nevada"~"NV",
+                           stateicp=="new hampshire"~"NH",
+                           stateicp=="new jersey"~"NJ",
+                           stateicp=="new mexico"~"NM",
+                           stateicp=="new york"~"NY",
+                           stateicp=="north carolina"~"NC",
+                           stateicp=="north dakota"~"ND",
+                           stateicp=="ohio"~"OH",
+                           stateicp=="oklahoma"~"OK",
+                           stateicp=="oregon"~"OR",
+                           stateicp=="pennsylvania"~"PA",
+                           stateicp=="rhode island"~"RI",
+                           stateicp=="south carolina"~"SC",
+                           stateicp=="south dakota"~"SD",
+                           stateicp=="tennessee"~"TN",
+                           stateicp=="texas"~"TX",
+                           stateicp=="utah"~"UT",
+                           stateicp=="vermont"~"VT",
+                           stateicp=="virginia"~"VA",
+                           stateicp=="washington"~"WA",
+                           stateicp=="west virginia"~"WV",
+                           stateicp=="wisconsin"~"WI",
+                           stateicp=="wyoming"~"WY",
+                           stateicp=="district of columbia"~"DC")) 
+census_dat$stateicp<-NULL
+
+#HOUSE HOLD INCOME
+
+level1 <- c("Less than $14,999", "$15,000 to $19,999")
+level2 <- c("$20,000 to $24,999", "$25,000 to $29,999", "$30,000 to $34,999", "$35,000 to $39,999")
+level3 <- c("$40,000 to $44,999", "$45,000 to $49,999", "$50,000 to $54,999", "$55,000 to $59,999")
+level4 <- c("$60,000 to $64,999", "$65,000 to $69,999", "$70,000 to $74,999", "$75,000 to $79,999")
+level5 <- c("$80,000 to $84,999", "$85,000 to $89,999", "$90,000 to $94,999", "$95,000 to $99,999")
+level6 <- c("$100,000 to $124,999", "$125,000 to $149,999")
+level7 <- c("$150,000 to $174,999", "$175,000 to $199,999")
+level8 <- c("$200,000 to $249,999")
+level9 <- c("$250,000 and above")
+
+
+survey_dat <- survey_dat %>% mutate(household.income = case_when(
+  household_income %in% level1~"Less than $19,999",
+  household_income %in% level2~"$20,000 to $39,999",
+  household_income %in% level3~"$40,000 to $59,999",
+  household_income %in% level4~"$60,000 to $79,999",
+  household_income %in% level5~"$80,000 to $99,999",
+  household_income %in% level6~"$100,000 to $149,999",
+  household_income %in% level7~"$150,000 to $199,999",
+  household_income %in% level8~"$200,000 to $249,999",
+  household_income %in% level9~"$250,000 and above",
+))
+
+
+
+census_dat<-census_dat %>% mutate(household.income = case_when(hhincome<=19999 ~ "Less than $19,999",
+                                      hhincome>19999 & hhincome<=39999~"$20,000 to $39,999",
+                                      hhincome>39999 & hhincome<=59999~"$40,000 to $59,999",
+                                      hhincome>59999 & hhincome<=79999~"$60,000 to $79,999",
+                                      hhincome>79999 & hhincome<=99999~"$80,000 to $99,999",
+                                      hhincome>99999 & hhincome<=149999~"$100,000 to $149,999",
+                                      hhincome>149999 & hhincome<=159999~"$150,000 to $199,999",
+                                      hhincome>159999 & hhincome<=249999~"$200,000 to $249,999",
+                                      hhincome>249999~"$250,000 and above"
+  )) 
+
+census_dat$hhincome<-NULL
+survey_dat$household_income<-NULL
+
+
+
+#race
+
+the_other<-c("Asian (Asian Indian)","Asian (Vietnamese)","Asian (Other)","Asian (Korean)","Asian (Filipino)",
+              "Pacific Islander (Native Hawaiian)","Pacific Islander (Other)",
+              "Pacific Islander (Samoan)","Pacific Islander (Guamanian)")
+
+survey_dat<-survey_dat %>% 
+  mutate(race = case_when(race_ethnicity =="Asian (Japanese)" ~ 'Japanese',
+                          race_ethnicity =="Asian (Chinese)" ~ 'Chinese',
+                          race_ethnicity=="Other race "~"Other race",
+                          race_ethnicity =="White" ~ 'White',
+                          race_ethnicity =="Black, or African American" ~ 'Black, or African American',
+                          race_ethnicity =="Some other race" ~ 'Other race',
+                          race_ethnicity=="American Indian or Alaska Native"~"American Indian or Alaska Native",
+                          race_ethnicity %in% the_other ~"other asian or pacific islander"
+  )) 
+survey_dat$race_ethnicity<-NULL
+
+
+
+census_dat<-census_dat %>% 
+  mutate(race_new = case_when(race=="white"~"White",
+                           race=="chinese"~"Chinese",
+                           race=="black/african american/negro"~"Black, or African American",
+                           race=="two major races"~"Other race",
+                           race=="other race, nec"~"Other race",
+                           race=="japanese"~"Japanese",
+                           race=="american indian or alaska native"~"American Indian or Alaska Native",
+                           race=="three or more major races"~"Other race",
+                           race=="other asian or pacific islander"~"other asian or pacific islander"
+  )) 
+
+census_dat$race <- census_dat$race_new
+
+
+survey_dat%>% select(vote_2020,age_in_group,gender,state,employment_stat,household.income,race)->final_survey_data
+census_dat%>% select(perwt,age_in_group,gender,state,employment_stat,household.income,race)->final_census_data
+
+
+variables.survey<-c("age_in_group","gender","employment_stat","state","household.income" ,"race","vote_2020")
+final_survey_data[variables.survey] <- lapply(final_survey_data[variables.survey], factor) 
+variables.census<-c("age_in_group","gender","employment_stat","state","household.income" ,"race")
+final_census_data[variables.census] <- lapply(final_census_data[variables.census], factor)
+
+
+#choose Biden as the reference case
+final_survey_data$vote_2020 <- relevel(final_survey_data$vote_2020, ref = "Joe Biden")    
+
+```
+
+
+
+```{r, include=FALSE}
+
+#build a multiple logistic regression model
+logistic_mod1 <- glm(vote_2020 ~ age_in_group+gender+employment_stat+state
+                     +household.income+race, data = final_survey_data, family = "binomial")
+
+#apply the logistic model in making predictions for the census data
+vote_2020.probability<-predict(logistic_mod1, final_census_data[,c("age_in_group","gender","employment_stat","state",
+                                                            "household.income","race")],type="response")
+
+vote_2020.result<-ifelse(vote_2020.probability>0.50,"Donald Trump", "Joe Biden")
+final_census_data_result<-cbind(final_census_data,vote_2020.result)
+
+
+#generate estimates of proportion of voters in favor of voting for Donald Trump  
+odds <- logistic_mod1%>%
+  predict(newdata = final_census_data)%>% exp()
+
+final_census_data$estimate <- odds/(1+odds)
+
+#generate estimate for each state
+final_census_data %>% 
+  mutate(predict_prob = estimate*perwt)%>% group_by(state)%>%
+  summarise(total = sum(predict_prob)/sum(perwt)) -> state_vote
+
+vote_result_state <- ifelse(state_vote$total>0.50,"Donald Trump", "Joe Biden")
+
+#bind estimate for each state and vote result together in a table
+state_result <- cbind(state_vote,  vote_result_state)
+state_result
+```
+
+
+
+# Model
+## Model Specifics
+
+In order to predict the overall popular vote outcome of the 2020 American federal election, we build a multiple logistic regression model and make use of the post-stratification technique. This model was selected since the outcome is dichotomous with more than one independent variable. It measures the probability of voting for Donald Trump by using age group, gender, employment state, state, household income and race as our predictor variables. Here, we use age group rather than age since we are interested in the relation associated with specific groups rather than individuals. RStudio is the software that we used to run the model. 
+
+Our model is given by the formula: 
+
+$log(\frac{p}{1-p})=\beta_0+\beta_1AG.1+\beta_2AG.2+\beta_3AG.3+\beta_4AG.4+\beta_5AG.5\\\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\beta_6gender.M+\beta_7ES.N+\beta_8ES.U+\beta_9state.1+...+\beta_{58}state.50\\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\beta_{59}hhicome.1+...+\beta_{66}hhicome.8+\beta_{67}race.B+...+\beta_{72}race.W$
+
+where $\beta_0=1.75308$ is the intercept, which represents log odds of voting for Donald Trump is equals to 1.75308 when age group is 18 and under, gender is female, employment state is employed, state is AK, household income is \$250,000 and above, race is American Indian or Alaska Native. $\beta_1=-0.24737$ represents when age group change from "18 and under" to "18 to 33", log odds of voting for Donald Trump will reduce by 0.24737. The terms $\beta_1$, $\beta_2$,..., $\beta_{72}$ are the change in log odds for dummy variables, in which represents the factor of odds that Y=1 within that category of X, comparing with the odds that Y=1 within the reference category.
+
+
+## Post-Stratification 
+We build a model with the post-stratification to estimate the proportion of voters in favor of voting for Donald Trump. Post-stratification is a way to 're-weight' so that the weighted totals within different cells equal the population totals. Our sample data was post-stratified on age, gender, employment status, state, household income, and race. The weight of the known population in the census data was also post-stratified by these variables. In addition, our sample size is small and there exist problems associated with low statistical power and unbalanced by the representation. Therefore, the post-stratification technique is appropriate to apply in our case and to help to obtain more accurate estimates of the population. We build a model with the post-stratification on sample data and making predictions using this model with data from the census. The variables we include are available in both sample and census data. The reasons why we include these explanatory variables in our cell split are as follows. Voters of different ages and different genders will have distinct opinions on deciding which candidate they are going to support. Thus, age and gender are likely to influence the outcome. We choose the variable "state" because states with few immigrants or relied on traditional industries tend to be more conservative, as policies such as loosening the immigration restriction or pursuing new energy would potentially harm their interests. Thus, "state" is a variable that might affect each voter's decision.  Moreover, Voters of different races could have different opinions on their preferred candidate since two parties take different approaches to deal with racial issues. Income level also would affect voters' choices because candidates aim to exercise their distinct taxation regulations and health insurance plans on households with different income levels.
+
+
+
+
+
+
+```{r, include=FALSE}
+
+#add the variable "electoral college" to each state
+state_table <- formattable(state_result)
+state_table <- state_table %>% mutate(state_table,'electrol_college'=
+       c(3,9,6,11,55,9,7,3,3,29,16,4,6,4,20,11,6,8,8,11,10,4,16,10,10,6,3,
+                         15,3,5,4,14,5,6,29,18,7,7,20,4,9,3,11,38,6,13,3,12,10,5,3))
+state_table
+```
+
+
+```{r, include=FALSE}
+
+#calculate the results of electoral college votes for both candidates "Donald Trump" and "Joe Biden"
+state_table %>% group_by(vote_result_state) %>% summarise(total_votes=sum(electrol_college))->election_result
+election_result
+```
+
+# Results
+
+
+```{r, echo=FALSE}
+
+#generate a formal table output in report
+df<-state_table
+colnames(df)[1]<-'State'
+colnames(df)[2]<-'Estimate'
+colnames(df)[3]<-'Result'
+colnames(df)[4]<-'E.C'
+df4<-df[c(5,10,11,15,23,28,32,35,39,44),]
+k4<-df4 %>% kbl(row.names = FALSE,caption = 'Vote Result for Each State') %>% kable_minimal() %>% kable_styling(full_width = FALSE)
+k4
+
+```
+
+We estimate that the proportion of voters in favor of voting for Donald Trump is 0.253 and this is the post-stratification estimate for electoral votes. The group of presidential electors is formed for the purpose of electing the president and the electors come from the 50 states and the federal district. Winning the popular vote does not ensure presidential election victory, this is achieved by the electoral college system. Each state gets some electors and if a candidate wins more than 50% of the vote, the state will grant all their electoral votes to this candidate. In "Table 1" above, we list the estimates, vote result, and the numbers of electoral votes for the states that have more than 10 electoral votes. In the total 538 electoral college votes, there are 136 electors vote in favor of Donald Trump.  
+
+
+# Discussion
+## Summmary
+
+The aim of this report is to fit a logistic regression model to estimate the vote rate for the 2020 US election. The full data was collected from Democracy Fund + UCLA Nation cape and the post stratification data was collected from American Community Survey. The data was cleaned by selecting several rows that are of our interest. The rows we selected are age, gender, state, employment, household income, and race. Also, person weight is included since it plays an essential role in the election. A logistic regression model was fitted on the survey data and then was applied to the census for prediction. 
+
+## Conclusion
+
+In conclusion, we predict that Joe Biden will receive 74.72% and Donald Trump will receive 25.28% of the electoral college votes. Therefore, we predict that Joe Biden will win the election.
+
+## Weakness & Next Steps
+
+We measured the result by comparing the probability that a state would vote for Donald trump, which has drawbacks. Notice that the average probability sometimes does not reflect the result precisely. For example, if there are three voters in a state, the probability of them to vote for Donald Trump is 40%, 40% and 73%, then the average of them voting for Donald Trump is 51%. Therefore, we conclude that all the members in electoral college of this state will vote for Donald Trump. But in fact, Donald Trump receives only 1/3 votes, which means this state actually supports Joe Biden more. Also, we did not apply any methods to evaluate the model. This might result in a biased or inaccurate model.
+
+Therefore, in next step we should improve our model by applying multi level logistic regression to get a more confident prediction. For model evaluation and diagnostic, we can apply likelihood ratio test, pseudo $R^2$ or Hosmer-Lemeshow test to evaluate the goodness of fit. Since these two candidates may have very similar number of votes, we have to make our prediction more confident in order to make a more confident prediction. In addition, we will pay attention to the result of the election and how each electoral college vote and correct our misjudgements accordingly. 
+
+
+# Reference
+
+[1] Press, C., Finance, Y., & Newsweek. (2020, October 30). New: Second Nationscape Data Set Release. Retrieved November 03, 2020, from https://www.voterstudygroup.org/publication/nationscape-data-set
+
+[2] Team, M. (n.d.). U.S. CENSUS DATA FOR SOCIAL, ECONOMIC, AND HEALTH RESEARCH. Retrieved November 03, 2020, from https://usa.ipums.org/usa/index.shtml
+
+[3] Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https://doi.org/10.21105/joss.01686
+
+[4] Kun Ren and Kenton Russell (2016). formattable: Create 'Formattable' Data Structures. R package version 0.2.0.1. https://CRAN.R-project.org/package=formattable
+
+[5] Hadley Wickham and Evan Miller (2020). haven: Import and Export 'SPSS', 'Stata' and 'SAS' Files. R package version2.3.1. https://CRAN.R-project.org/package=haven
+
+[6] Hao Zhu (2020). kableExtra: Construct Complex Table with 'kable' and Pipe Syntax. R package version 1.3.1.https://CRAN.R-project.org/package=kableExtra
+
+[7] Grace-Martin, K., João, Anita.a, &amp; Dina. (2018, December 14). How to Interpret Odd Ratios when a Categorical Predictor Variable has More than Two Levels. Retrieved November 03, 2020, from https://www.theanalysisfactor.com/odds-ratio-categorical-predictor/
+
+[8] US election 2020: What is the electoral college? (2020, October 27). Retrieved November 03, 2020, from https://www.bbc.com/news/world-us-canada-53558176
