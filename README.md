@@ -1,4 +1,5 @@
-# USpredictionRModel
+# Joe Biden With a Huge Advantage Against Donald Trump in 2020
+United States Presidential Election :pencil2::pencil2:
  
 :star_struck: I build a model with the post-stratification to estimate the proportion of voters in favor of voting for Donald
 Trump. Post-stratification is a way to ‘re-weight’ so that the weighted totals within different cells equal the
