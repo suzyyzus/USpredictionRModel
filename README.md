@@ -1,5 +1,11 @@
 # USpredictionRModel
  
+:star_struck: I build a model with the post-stratification to estimate the proportion of voters in favor of voting for Donald
+Trump. Post-stratification is a way to ‘re-weight’ so that the weighted totals within different cells equal the
+population totals. Our sample data was post-stratified on age, gender, employment status, state, household
+income, and race. The weight of the known population in the census data was also post-stratified by these
+variables.
+ 
 Highlight of Code
 
 ```
