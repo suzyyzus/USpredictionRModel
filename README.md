@@ -8,7 +8,7 @@ population totals. Our sample data was post-stratified on age, gender, employmen
 income, and race. The weight of the known population in the census data was also post-stratified by these
 variables.
  
-Highlight of Code
+Highlight of my Code
 
 ```
 setwd("/Users/zishuzhu/Desktop/problemset3")
